@@ -1,0 +1,57 @@
+---
+name: wordpress
+
+services:
+
+  # the WordPress container
+  wordpress-server:
+    # image: wpeverywhere/frankenwp:latest-php8.3
+    image: 4h/wordpress:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wordpress-server
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      SERVER_NAME: https://silk.ts
+      WORDPRESS_DB_HOST: wordpress-database
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_TABLE_PREFIX: wp_
+      WORDPRESS_CONFIG_EXTRA: |
+        define('WP_SITEURL', 'https://silk.ts');
+        define('WP_HOME', 'https://silk.ts');
+      CADDY_GLOBAL_OPTIONS: |
+        local_certs
+        auto_https disable_redirects
+        email mika.cl@gmail.com
+        debug
+    volumes:
+      - ./wp-content:/var/www/html/wp-content
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy:/data/caddy
+    depends_on:
+      - wordpress-database
+    tty: true
+
+  # the database container
+  wordpress-database:
+    image: mariadb:latest
+    container_name: wordpress-database
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+      MYSQL_ROOT_PASSWORD: this-database-is-not-secure
+    volumes:
+      - ./mysql:/var/lib/mysql
+
+networks:
+  default:
+    name: wordpress-network
